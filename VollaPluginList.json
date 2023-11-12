@@ -17,6 +17,15 @@
       "downloadUrl":"https://raw.githubusercontent.com/HelloVolla/android-launcher-plugin/master/volla.wikipedia/plugin.qml",
       "minLauncherVersion": 2.3,
       "maxLauncherVersion": 10
+    },
+    {
+      "id":"volla_calculator",
+      "name":"Calculator",
+      "version":0.1,
+      "description":"It will add feature to open a calculator directly from Springboard'", 
+      "downloadUrl": "https://raw.githubusercontent.com/HelloVolla/android-launcher-plugin/master/volla.weather/plugin.qml",
+      "minLauncherVersion": 2.3,
+      "maxLauncherVersion": 10
     }
   ]
 }
