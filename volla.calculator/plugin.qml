@@ -18,7 +18,7 @@ QtObject {
 
     function executeInput (inputString, functionId, inputObject) {
         if (functionId === 0) {
-            var parameter = inputObject !== undefined ? "online calculator " + inputObject : "online calculator " + inputString;
+            var parameter = inputObject !== undefined ? "calculator " + inputObject : "calculator " + inputString;
             Qt.openUrlExternally("https://startpage.com/sp/search?query=" + encodeURIComponent(parameter) + "&segment=startpage.volla");
         } else {
             console.warn(metadata.id + " | Unknown function " + functionId + " called");
@@ -34,7 +34,7 @@ QtObject {
             suggestions = [{'label' : 'Calculator', 'functionId': 0}];
 
             if ('Berlin'.startsWith(inputString) && !inputString.startsWith('Berlin')) {
-                suggestions.push({'label' : 'Calculator', 'object' : 'Rekenmachine'});
+                suggestions.push({'label' : 'Calculator', 'object' : 'Calculator'});
             }
         }
         return suggestions;
