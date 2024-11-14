@@ -18,7 +18,7 @@ QtObject {
     }
 
     function executeInput (inputString, functionId, inputObject) {
-console.debug("Weather Plugin | Calling executeInput 0 ")
+console.debug("Weather Plugin | Calling executeInput 1 ")
     }
 
     function processInput (inputString,  callback, inputObject) {
