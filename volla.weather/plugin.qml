@@ -18,7 +18,7 @@ QtObject {
     }
 
     function executeInput (inputString, functionId, inputObject) {
-console.debug("Weather Plugin | Calling executeInput 1 ")
+console.debug("Weather Plugin | Calling executeInput 2 ")
     }
 
     function processInput (inputString,  callback, inputObject) {
@@ -28,10 +28,13 @@ console.debug("Weather Plugin | Calling executeInput 1 ")
         console.debug("Weather Plugin | Process input string: " + inputString)
         var suggestions = new Array
         if (inputObject !== undefined && inputObject.pluginId === metadata.id) {
+          console.debug("Weather Plugin | Process input inputObject: " + inputObject)
             var compareStr = inputObject.entity['name'] + ", " + inputObject.entity['state'] +","+ inputObject.entity['country']
         if (inputString.toLowerCase().trim() === compareStr.toLowerCase())
+         console.debug("Weather Plugin | Process input compareStr: " + compareStr)
                 getWeather(inputObject.entity['name'],inputObject.entity['lat'], inputObject.entity['lon'], callback)
         } else if (inputObject === undefined && inputString.length > 1 && inputString.length < 100) {
+          console.debug("Weather Plugin | Process input inputString.length: " + inputString.length)
             var geoCodingUrl = "http://api.openweathermap.org/geo/1.0/direct?q=" + inputString.replace(/\s+/g,"") + "&limit=5&appid=" + apiKey;
             var locationRequest = new XMLHttpRequest()
             locationRequest.onreadystatechange = function() {
