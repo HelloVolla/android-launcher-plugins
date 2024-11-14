@@ -18,6 +18,7 @@ QtObject {
     }
 
     function executeInput (inputString, functionId, inputObject) {
+console.debug("Weather Plugin | Calling executeInput 0 ")
     }
 
     function processInput (inputString,  callback, inputObject) {
@@ -56,6 +57,7 @@ QtObject {
                     }
                 }
             }
+            console.debug("Weather Plugin | Calling geoCodingUrl "+geoCodingUrl)
             locationRequest.open("GET", geoCodingUrl)
             locationRequest.send()
         } else {
