@@ -51,7 +51,7 @@ console.debug("Weather Plugin | Calling executeInput 1 ")
                                 if(locations[i].country !== undefined ){
                                     location = location + ", " + locations[i].country
                                 }
-                                suggestions.push({'label' : location, 'object': locations[i]});
+                                suggestions.push({'label' : metadata.name + " : " +location, 'object': locations[i]});
                                 console.log("Weather Plugin | Found location candidate " + location)
                             }
                             console.debug("Weather Plugin | Calling callback true")
