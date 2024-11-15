@@ -14,6 +14,7 @@ QtObject {
 
     function init (inputParameter) {
         // todo: Load any resource if necessary
+console.debug('Wiki Plugin | Will open 1');
     }
 
     function executeInput (inputString, functionId, inputObject) {
@@ -44,7 +45,7 @@ QtObject {
                     console.debug("Wiki Plugin | Summary request responce " + summaryRequest.status)
                     if (summaryRequest.status === 200) {
                         console.log("Wiki Plugin | wiki responste status 200 "+summaryRequest.responseText)
-                        suggestions.push({'label' : 'Wikipedia', 'functionId': 0})
+                        //suggestions.push({'label' : 'Wikipedia', 'functionId': 0})
                         var wiki = JSON.parse(summaryRequest.responseText)
                         var query = wiki.query
                         var pages = query.pages
@@ -76,7 +77,7 @@ QtObject {
                     console.debug("Wiki Plugin | Article request responce " + xmlRequest.status)
                     if (xmlRequest.status === 200) {
                         console.log("Wiki Plugin | wiki responste status 200 "+xmlRequest.responseText)
-                        suggestions.push({'label' : 'Wikipedia', 'functionId': 0})
+                        //suggestions.push({'label' : 'Wikipedia', 'functionId': 0})
                         var wiki = JSON.parse(xmlRequest.responseText)
                         var query = wiki.query
                         var wikiItems = query["prefixsearch"]
