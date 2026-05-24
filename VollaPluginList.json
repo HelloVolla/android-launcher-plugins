@@ -26,6 +26,15 @@
       "downloadUrl":"https://raw.githubusercontent.com/HelloVolla/android-launcher-plugin/dev/volla.calculator/plugin.qml",
       "minLauncherVersion": 3,
       "maxLauncherVersion": 10
+    },
+    {
+     "id":"volla_chatgpt",
+      "name":"ChatGPT",
+      "version":0.1,
+      "description":"This plugin integrates ChatGPT for AI-powered responses directly from the springboard",
+      "downloadUrl":"https://raw.githubusercontent.com/HelloVolla/android-launcher-plugin/master/volla.chatgpt/plugin.qml",
+      "minLauncherVersion": 3,
+      "maxLauncherVersion": 10
     }
   ]
 }
