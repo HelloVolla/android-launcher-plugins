@@ -22,7 +22,7 @@
      "id":"volla_calculator",
       "name":"Calculator",
       "version":0.1,
-      "description":"It will add a simple calculator the the springbpard",
+      "description":"It will add a simple calculator to the springboard",
       "downloadUrl":"https://raw.githubusercontent.com/HelloVolla/android-launcher-plugin/dev/volla.calculator/plugin.qml",
       "minLauncherVersion": 3,
       "maxLauncherVersion": 10
