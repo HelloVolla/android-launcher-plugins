@@ -11,7 +11,7 @@ QtObject{
     id: si
 
     property var metadata: {
-        'id': 'volla_si',
+        'id': 'volla_supportive_intelligence',
         'name': 'Supportive Intelligence',
         'description': "On-device assistant for handling user queries and providing intelligent responses.",
         'version': '0.1.0',
