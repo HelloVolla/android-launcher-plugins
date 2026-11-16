@@ -26,6 +26,15 @@
       "downloadUrl":"https://raw.githubusercontent.com/HelloVolla/android-launcher-plugin/dev/volla.calculator/plugin.qml",
       "minLauncherVersion": 3,
       "maxLauncherVersion": 10
+    },
+    {
+      "id":"volla_supportive_intelligence",
+      "name":"Supportive Intelligence",
+      "description":"On-device assistant for handling user queries and providing intelligent responses.",
+      "version": "0.1.0",
+      "downloadUrl":"https://raw.githubusercontent.com/HelloVolla/android-launcher-plugin/dev/volla.si/plugin.qml",
+      "minLauncherVersion": 3,
+      "maxLauncherVersion": 100
     }
   ]
 }
