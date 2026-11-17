@@ -28,8 +28,14 @@ QtObject{
     property string decidedText: ""
     property string lastInput: ""
 
+    function init() {
+        if (!downloader.modelsReady())
+            downloader.offerOnce()
+    }
+
     function activate() {
-        llm.startAssistant()
+        if (downloader.modelsReady())
+            llm.startAssistant()
     }
 
     function reset() {
@@ -40,6 +46,7 @@ QtObject{
         lastInput = ""
         sourceItems["laya"] = []
         sourceItems["ask"] = []
+        sourceItems["download"] = []
         llm.clearAssistant()
     }
 
@@ -59,6 +66,13 @@ QtObject{
         }
         if (text !== assistantPrompt)
             llm.clearAssistant()
+
+        if (!downloader.modelsReady()) {
+            sourceItems["download"] = assistant.available && !contactPrefix && text.length > 0
+                    ? [downloader.item()] : []
+            listModel.insertItems(sourceItems["download"])
+            return
+        }
 
         sourceItems["ask"] = assistant.available && !contactPrefix && text.length > 2
                 ? [llm.askItem()] : []
@@ -449,5 +463,123 @@ QtObject{
         }
     }
 
-    property var modules: [clock, dialer, llm]
+    // Downloads the models through the launcher's modelHandler
+    // (libmodel_handler). Asks for consent first and warns on mobile data.
+    property QtObject downloader: QtObject {
+        readonly property string key: "download"
+        property bool hasHandler: typeof modelHandler !== "undefined"
+        property var store: Qt.createQmlObject(
+            'import Qt.labs.settings 1.0; Settings { category: "volla_si"; property bool downloadOffered: false }',
+            si, "siSettings")
+
+        function modelsReady() {
+            return !hasHandler || modelHandler.installed
+        }
+
+        function sizeText() {
+            var mb = modelHandler.missingBytes / (1024 * 1024)
+            return mb >= 1024 ? (mb / 1024).toFixed(1) + " GB" : Math.max(1, Math.round(mb)) + " MB"
+        }
+
+        function item() {
+            var text = modelHandler.downloading
+                    ? qsTr("Downloading assistant") + " " + Math.floor(modelHandler.progress * 100) + "% · " + qsTr("tap to cancel")
+                    : qsTr("Download assistant") + " (" + sizeText() + ")"
+            return {
+                "text": text,
+                "action": mainView.actionType.AskAssistant,
+                "actionObj": {"pluginId": si.metadata.id,
+                              "functionId": key + (modelHandler.downloading ? ".cancel" : ".start")},
+                "category": listModel.category.Function,
+                "source": "download",
+                "isFirstSuggestion": false
+            }
+        }
+
+        function refreshItem() {
+            if ((si.sourceItems["download"] || []).length > 0)
+                si.setSourceItems("download", modelsReady() ? [] : [item()])
+        }
+
+        function execute(functionName, input, object) {
+            if (functionName === "start")
+                offer()
+            else if (functionName === "cancel")
+                modelHandler.cancel()
+            return true
+        }
+
+        // Offer the download only once automatically (when the skill is
+        // enabled); afterwards the user starts it from the Springboard item.
+        function offerOnce() {
+            if (!hasHandler || !assistant.available || store.downloadOffered || modelHandler.downloading)
+                return
+            store.downloadOffered = true
+            offer()
+        }
+
+        function offer() {
+            if (!hasHandler || modelHandler.downloading)
+                return
+            modelHandler.refresh()
+            if (modelHandler.installed)
+                return
+            var metered = modelHandler.isMeteredNetwork()
+            var text = qsTr("Supportive Intelligence needs to download its models (%1). ")
+                        .arg(sizeText()).arg(modelHandler.directory)
+            if (metered)
+                text += "\n\n" + qsTr("You are on mobile data. It is recommended to wait for Wi-Fi.")
+            var dialog = Qt.createQmlObject('
+                import QtQuick 2.12
+                import QtQuick.Controls 2.5
+                Dialog {
+                    property alias message: label.text
+                    property string acceptText
+                    anchors.centerIn: parent
+                    width: parent.width * 0.85
+                    modal: true
+                    title: qsTr("Download assistant")
+                    Label { id: label; width: parent.width; wrapMode: Text.WordWrap }
+                    footer: DialogButtonBox {
+                        Button { text: qsTr("Later"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; flat: true }
+                        Button { text: acceptText; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole; flat: true }
+                    }
+                    onClosed: destroy()
+                }', mainView, "siDownloadDialog")
+            dialog.message = text
+            dialog.acceptText = metered ? qsTr("Use mobile data") : qsTr("Download")
+            dialog.accepted.connect(function () {
+                if (modelHandler.download())
+                    mainView.showToast(qsTr("Downloading the assistant models"))
+                refreshItem()
+            })
+            dialog.open()
+        }
+    }
+
+    property Connections modelConnections: Connections {
+        target: si.downloader.hasHandler ? modelHandler : null
+        ignoreUnknownSignals: true
+
+        onProgressChanged: si.downloader.refreshItem()
+        onDownloadingChanged: si.downloader.refreshItem()
+
+        onFinished: {
+            console.log("SI | Models installed")
+            si.config = si.loadSIConfig(assistant.configUrl)
+            si.setSourceItems("download", [])
+            mainView.showToast(qsTr("The assistant is ready"))
+            if (springBoard.isCurrentPage)
+                si.llm.startAssistant()
+        }
+
+        onFailed: {
+            console.warn("SI | Model download stopped: " + message)
+            if (!cancelled)
+                mainView.showToast(qsTr("Assistant download failed") + ": " + message)
+            si.downloader.refreshItem()
+        }
+    }
+
+    property var modules: [clock, dialer, llm, downloader]
 }
