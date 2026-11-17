@@ -223,13 +223,18 @@ QtObject{
                     add(mainView.actionName.CallContact + " " + decision.callees[i]["name"],
                         mainView.actionType.CallContact, decision.callees[i])
             }
-            if (decision.time !== undefined && decision.clockAction === "set_alarm"){
-                add(mainView.actionName.SetAlarm + " " + decision.time.hour + ":" + decision.time.minute, 
-                    mainView.actionType.SetAlarm, {"hour": decision.time.hour, "minutes": decision.time.minute})
-            }
-            if (decision.time !== undefined && decision.clockAction === "set_timer"){
-                add(mainView.actionName.SetTimer + " " + decision.time.hour + ":" + decision.time.minute, 
-                    mainView.actionType.SetTimer, {"hour": decision.time.hour, "minutes": decision.time.minute})
+            if (decision.time && (decision.clockAction === "set_alarm" || decision.clockAction === "set_timer")) {
+                var h = parseInt(decision.time.hour, 10)
+                var m = parseInt(decision.time.minutes, 10)
+                if (isNaN(h)) h = 0
+                if (isNaN(m)) m = 0
+                var label = (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m
+                if (decision.clockAction === "set_alarm")
+                    add(mainView.actionName.SetAlarm + " " + label,
+                        mainView.actionType.SetAlarm, {"hour": h, "minutes": m})
+                else
+                    add(mainView.actionName.SetTimer + " " + label,
+                        mainView.actionType.SetTimer, {"hour": h, "minutes": m})
             }
             if (decision.key === si.clock.key)
                 add(si.clock.actionLabel(decision.clockAction), mainView.actionType.OpenClock,
@@ -316,6 +321,18 @@ QtObject{
 
         function lookForTime(prompt) {
             var t = " " + prompt.toLowerCase().replace(/[\s.,!?;"'()]+/g, " ") + " "
+
+            var hm = t.match(/\b(\d{1,2})\s*(?:h|hr|hrs|hour|hours)\b/)
+            var mm = t.match(/\b(\d{1,3})\s*(?:m|min|mins|minute|minutes)\b/)
+            if (hm || mm) {
+                var dh = hm ? parseInt(hm[1]) : 0
+                var dmin = mm ? parseInt(mm[1]) : 0
+                dh += Math.floor(dmin / 60)
+                dmin = dmin % 60
+                if (dh > 23 || (dh === 0 && dmin === 0)) return null
+                return { hour: dh, minute: dmin }
+            }
+
             var m = t.match(/\b(\d{1,2})(?:[:h](\d{2}))?\s*(am|pm|a m|p m)?\b/)
             if (!m) return null
             var h = parseInt(m[1]), min = m[2] ? parseInt(m[2]) : 0
