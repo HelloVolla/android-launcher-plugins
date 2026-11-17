@@ -128,7 +128,7 @@ QtObject{
 
 
             if (si.clock.getAvailableActions().indexOf(decision.key) >= 0) {
-                if(decision.key === "set_alarm"){
+                if(decision.key === "set_alarm" || decision.key === "set_timer"){
                     decision.time = si.clock.lookForTime(decision.prompt)
                 }
                 si.clock.actionChosen(decision)
@@ -226,6 +226,10 @@ QtObject{
             if (decision.time !== undefined && decision.clockAction === "set_alarm"){
                 add(mainView.actionName.SetAlarm + " " + decision.time.hour + ":" + decision.time.minute, 
                     mainView.actionType.SetAlarm, {"hour": decision.time.hour, "minutes": decision.time.minute})
+            }
+            if (decision.time !== undefined && decision.clockAction === "set_timer"){
+                add(mainView.actionName.SetTimer + " " + decision.time.hour + ":" + decision.time.minute, 
+                    mainView.actionType.SetTimer, {"hour": decision.time.hour, "minutes": decision.time.minute})
             }
             if (decision.key === si.clock.key)
                 add(si.clock.actionLabel(decision.clockAction), mainView.actionType.OpenClock,
