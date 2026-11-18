@@ -152,6 +152,14 @@ QtObject{
         }
     }
 
+    property Connections dispatcherConnections: Connections {
+        target: AN.SystemDispatcher
+        onDispatched: {
+            if (type === "volla.launcher.gotSiAlarmsResponse")
+                si.clock.alarmsReceived(message.alarms)
+        }
+    }
+
     onAssistantThinkingChanged: mainView.updateSpinner(assistantThinking)
 
     property Timer decisionTimer: Timer {
@@ -236,8 +244,22 @@ QtObject{
                     add(mainView.actionName.SetTimer + " " + label,
                         mainView.actionType.SetTimer, {"hour": h, "minutes": m})
             }
+            if (decision.clockAction === "dismiss_alarm" && si.clock.siAlarms !== undefined) {
+                // One option per time; dismissing it dismisses every SI alarm at that time.
+                var shown = {}
+                for (var a = 0; a < si.clock.siAlarms.length; a++) {
+                    var alarm = si.clock.siAlarms[a]
+                    var time = si.clock.formatTime(alarm.hour, alarm.minutes)
+                    if (shown[time])
+                        continue
+                    shown[time] = true
+                    add(mainView.actionName.DismissAlarm + " " + time,
+                        mainView.actionType.DismissAlarm,
+                        {"hour": alarm.hour, "minutes": alarm.minutes})
+                }
+            }
             if (decision.key === si.clock.key)
-                add(si.clock.actionLabel(decision.clockAction), mainView.actionType.OpenClock,
+                add(mainView.actionName.OpenClock, mainView.actionType.OpenClock,
                     decision.clockAction !== undefined ? {"clockAction": decision.clockAction} : undefined)
             else if (decision.key === si.dialer.key)
                 add(mainView.actionName.ShowDialer, mainView.actionType.ShowDialer)
@@ -307,40 +329,71 @@ QtObject{
             current.clockActionConfidence = decision.confidence
             current.time = decision.time
             si.assistantDecision = current
+            if (decision.key === "dismiss_alarm") {
+                si.clock.siAlarms = undefined
+                AN.SystemDispatcher.dispatch("volla.launcher.getSiAlarmsAction", {})
+            }
             si.setSourceItems("laya", si.router.layaItems(current))
         }
 
 
-        function actionLabel(action) {
-            if (action === "set_alarm")
-                return qsTr("Set alarm")
-            if (action === "set_timer")
-                return qsTr("Set timer")
-            return mainView.actionName.OpenClock
+        property var siAlarms: undefined
+
+        function alarmsReceived(alarms) {
+            si.clock.siAlarms = alarms || []
+            var current = si.assistantDecision
+            if (current === undefined || current.clockAction !== "dismiss_alarm")
+                return
+            if (si.clock.siAlarms.length === 0)
+                mainView.showToast(qsTr("There are no alarms set by SI"))
+            si.setSourceItems("laya", si.router.layaItems(current))
         }
 
-        function lookForTime(prompt) {
-            var t = " " + prompt.toLowerCase().replace(/[\s.,!?;"'()]+/g, " ") + " "
+        function formatTime(hour, minutes) {
+            return (hour < 10 ? "0" : "") + hour + ":" + (minutes < 10 ? "0" : "") + minutes
+        }
 
-            var hm = t.match(/\b(\d{1,2})\s*(?:h|hr|hrs|hour|hours)\b/)
-            var mm = t.match(/\b(\d{1,3})\s*(?:m|min|mins|minute|minutes)\b/)
-            if (hm || mm) {
-                var dh = hm ? parseInt(hm[1]) : 0
-                var dmin = mm ? parseInt(mm[1]) : 0
-                dh += Math.floor(dmin / 60)
-                dmin = dmin % 60
-                if (dh > 23 || (dh === 0 && dmin === 0)) return null
-                return { hour: dh, minute: dmin }
+        // Finds a time or duration in the prompt; returns { hour, minutes } or null.
+        // Checked in this order:
+        //   1. clock time "7:30", "07:30", "19.45", "7:30 pm"
+        //   2. duration   "2 min", "1h 30m", "90 minutes" (90 min -> 1:30)
+        //   3. clock time "7", "7 am", "7h30"
+        function lookForTime(prompt) {
+            var text = " " + prompt.toLowerCase() + " "
+
+            var clock = text.match(/[^\d:.](\d{1,2})[:.](\d{2})(?![\d:]|\.\d)\s*(a\.?\s?m\.?|p\.?\s?m\.?)?/)
+            if (clock) {
+                var time = clockTime(clock[1], clock[2], clock[3])
+                if (time)
+                    return time
             }
 
-            var m = t.match(/\b(\d{1,2})(?:[:h](\d{2}))?\s*(am|pm|a m|p m)?\b/)
-            if (!m) return null
-            var h = parseInt(m[1]), min = m[2] ? parseInt(m[2]) : 0
-            var ap = m[3] ? m[3].replace(" ", "") : ""
-            if (ap === "pm" && h < 12) h += 12
-            if (ap === "am" && h === 12) h = 0
-            if (h > 23 || min > 59) return null
-            return { hour: h, minute: min }
+            // Separators removed; a "." would otherwise break "7 a.m." and "2 min.".
+            var words = text.replace(/[\s.,!?;"'()]+/g, " ")
+
+            var hours = words.match(/\b(\d{1,2})\s*(?:h|hr|hrs|hour|hours)\b/)
+            var mins = words.match(/\b(\d{1,3})\s*(?:m|min|mins|minute|minutes)\b/)
+            if (hours || mins) {
+                var total = (hours ? parseInt(hours[1], 10) * 60 : 0) + (mins ? parseInt(mins[1], 10) : 0)
+                if (total === 0 || total >= 24 * 60)
+                    return null
+                return { hour: Math.floor(total / 60), minutes: total % 60 }
+            }
+
+            var plain = words.match(/\b(\d{1,2})(?:h(\d{2}))?\s*(a ?m|p ?m)?\b/)
+            return plain ? clockTime(plain[1], plain[2] || "0", plain[3]) : null
+        }
+
+        // hour/minutes as strings, suffix "am"/"pm" in any spelling or empty.
+        function clockTime(hourText, minutesText, suffix) {
+            var hour = parseInt(hourText, 10)
+            var minutes = parseInt(minutesText, 10)
+            var ampm = suffix ? suffix.replace(/[.\s]/g, "") : ""
+            if (ampm === "pm" && hour < 12) hour += 12
+            if (ampm === "am" && hour === 12) hour = 0
+            if (hour > 23 || minutes > 59)
+                return null
+            return { hour: hour, minutes: minutes }
         }
 
     }
